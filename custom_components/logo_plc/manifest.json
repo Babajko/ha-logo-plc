@@ -1,0 +1,12 @@
+{
+  "domain": "logo_plc",
+  "name": "Siemens LOGO! PLC",
+  "version": "0.1.0",
+  "config_flow": true,
+  "documentation": "https://github.com/Babajko/ha-logo-plc",
+  "issue_tracker": "https://github.com/Babajko/ha-logo-plc/issues",
+  "codeowners": ["@Babajko"],
+  "iot_class": "local_polling",
+  "integration_type": "hub",
+  "requirements": ["pymodbus>=3.6.0"]
+}
