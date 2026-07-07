@@ -1,5 +1,5 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LOGO! PLC integration">
-  <path d="M256 84 L408 212 L408 428 L104 428 L104 212 Z" fill="#0d8a99"/>
-  <rect x="168" y="292" width="176" height="76" rx="38" fill="#ffbe33"/>
-  <circle cx="306" cy="330" r="28" fill="#ffffff"/>
+  <path d="M256 0 L512 216 L424 216 L424 512 L88 512 L88 216 L0 216 Z" fill="#0d8a99"/>
+  <rect x="146" y="334" width="220" height="92" rx="46" fill="#ffbe33"/>
+  <circle cx="326" cy="380" r="34" fill="#ffffff"/>
 </svg>
