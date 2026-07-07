@@ -119,6 +119,14 @@ See `docs/logo-modbus-notes.md` for the full write-up. Key points:
 - Exact Pi5 deploy mechanics (SSH access, symlink vs pull, HA restart
   method) to be pinned down when we first deploy.
 
+## Icon
+
+- Chosen icon: a teal house silhouette with an amber toggle switch (on)
+  inside it. Source at `icons/icon.svg`; the five earlier candidates are
+  kept in `icons/options/`. Palette: teal `#0d8a99`, amber `#ffbe33`,
+  white. To show in the HA UI, rasterize to PNG (256 + 512) and submit
+  to the `home-assistant/brands` repo under `custom_integrations/logo_plc/`.
+
 ## Conventions (borrowed from the vartovyi project)
 
 - Small steps, each ending in a commit and a pause for the user to

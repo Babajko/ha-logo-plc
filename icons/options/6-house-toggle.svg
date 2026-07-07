@@ -1,0 +1,5 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Home with toggle switch">
+  <path d="M256 84 L408 212 L408 428 L104 428 L104 212 Z" fill="#0d8a99"/>
+  <rect x="168" y="292" width="176" height="76" rx="38" fill="#ffbe33"/>
+  <circle cx="306" cy="330" r="28" fill="#ffffff"/>
+</svg>
