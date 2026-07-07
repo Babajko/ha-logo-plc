@@ -1,0 +1,101 @@
+# Example logo_plc configuration for both PLCs.
+#
+# Copy the `logo_plc:` block into your Home Assistant configuration.yaml
+# (or an included file) and restart HA. Each PLC becomes a device and
+# each output a switch. Editing this and restarting re-imports it, so
+# YAML stays the source of truth for these entries.
+#
+# state_address = the Q coil to read (Q1 = 8192, Q2 = 8193, ...).
+# pulse_address = the network-input coil that toggles the relay
+#                 (taken from the original scripts; the mapping is
+#                 irregular by design).
+#
+# Note: LOGO1 Q6 and Q11 are omitted — the original script had no pulse
+# (network-input) coil for them, so they can't be controlled, only read.
+
+logo_plc:
+  - name: LOGO1
+    host: 192.168.0.2
+    port: 504
+    slave: 1
+    scan_interval: 1
+    outputs:
+      - name: Q1
+        state_address: 8192
+        pulse_address: 21
+      - name: Q2
+        state_address: 8193
+        pulse_address: 23
+      - name: Q3
+        state_address: 8194
+        pulse_address: 7
+      - name: Q4
+        state_address: 8195
+        pulse_address: 22
+      - name: Q5
+        state_address: 8196
+        pulse_address: 15
+      - name: Q7
+        state_address: 8198
+        pulse_address: 11
+      - name: Q8
+        state_address: 8199
+        pulse_address: 9
+      - name: Q9
+        state_address: 8200
+        pulse_address: 16
+      - name: Q10
+        state_address: 8201
+        pulse_address: 17
+      - name: Q12
+        state_address: 8203
+        pulse_address: 14
+      - name: Q13
+        state_address: 8204
+        pulse_address: 12
+      - name: Q14
+        state_address: 8205
+        pulse_address: 8
+      - name: Q15
+        state_address: 8206
+        pulse_address: 6
+      - name: Q16
+        state_address: 8207
+        pulse_address: 13
+      - name: Q17
+        state_address: 8208
+        pulse_address: 18
+      - name: Q18
+        state_address: 8209
+        pulse_address: 19
+      - name: Q19
+        state_address: 8210
+        pulse_address: 20
+      - name: Q20
+        state_address: 8211
+        pulse_address: 10
+
+  - name: LOGO2
+    host: 192.168.0.3
+    port: 504
+    slave: 1
+    scan_interval: 1
+    outputs:
+      - name: Q1
+        state_address: 8192
+        pulse_address: 19
+      - name: Q2
+        state_address: 8193
+        pulse_address: 22
+      - name: Q3
+        state_address: 8194
+        pulse_address: 16
+      - name: Q4
+        state_address: 8195
+        pulse_address: 17
+      - name: Q5
+        state_address: 8196
+        pulse_address: 20
+      - name: Q6
+        state_address: 8197
+        pulse_address: 21

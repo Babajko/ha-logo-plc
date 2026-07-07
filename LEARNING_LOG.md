@@ -63,6 +63,23 @@ slots — remove the old config when cutting over.
 
 <!-- newest at the top -->
 
+## 2026-07-05 — first working install on Pi5
+
+**Goal:** get the integration running in real Home Assistant.
+
+### What worked
+- Pushed to https://github.com/Babajko/ha-logo-plc, installed via HACS
+  custom repository, added a LOGO! from the UI and a switch that reads
+  the real relay state and toggles it with an impulse. End to end works.
+- Most of the friction was git auth, not code: no `gh` on the box, and
+  the default SSH key was a `zmk-config` deploy key, so pushes went to
+  the wrong place until an account-level key + ~/.ssh/config were set
+  and the empty repo was created on GitHub.
+
+### Next session
+- Add the remaining outputs and the second PLC (.3) from the UI (no
+  code). Then: YAML import, tests, CI, and tag v0.1.0.
+
 ## 2026-07-05 — Home Assistant wiring (config flow + switch)
 
 **Goal:** turn the verified Modbus core into a loadable HA integration.

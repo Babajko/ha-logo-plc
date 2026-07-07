@@ -56,6 +56,9 @@ Key facts carried over from the old config:
   - Per output: name, state_address, pulse_address, pulse_duration,
     icon, device_class. Both addresses entered by hand (irregular map).
 - **Distribution:** public GitHub repo `ha-logo-plc`, HACS-installable.
+  Live at https://github.com/Babajko/ha-logo-plc (first push 2026-07-05,
+  over SSH with an account-level key; the WSL box also had a zmk-config
+  deploy key that had to be worked around with ~/.ssh/config).
   - Repo root has `custom_components/logo_plc/`, `hacs.json`,
     `manifest.json` with a `version`, README, LICENSE (MIT).
   - HACS is already installed on the Pi5.

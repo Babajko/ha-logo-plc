@@ -91,6 +91,34 @@ class LogoConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=schema, errors=errors
         )
 
+    async def async_step_import(
+        self, import_data: dict[str, Any]
+    ) -> ConfigFlowResult:
+        """Create or update an entry from a YAML `logo_plc:` block."""
+        unique_id = f"{import_data[CONF_HOST]}:{import_data[CONF_PORT]}"
+        connection = {
+            CONF_NAME: import_data[CONF_NAME],
+            CONF_HOST: import_data[CONF_HOST],
+            CONF_PORT: import_data[CONF_PORT],
+            CONF_SLAVE: import_data[CONF_SLAVE],
+            CONF_SCAN_INTERVAL: import_data[CONF_SCAN_INTERVAL],
+        }
+        options = {CONF_OUTPUTS: import_data.get(CONF_OUTPUTS, [])}
+
+        for entry in self._async_current_entries():
+            if entry.unique_id == unique_id:
+                changed = self.hass.config_entries.async_update_entry(
+                    entry, data=connection, options=options
+                )
+                if changed:
+                    self.hass.config_entries.async_schedule_reload(entry.entry_id)
+                return self.async_abort(reason="already_configured")
+
+        await self.async_set_unique_id(unique_id)
+        return self.async_create_entry(
+            title=import_data[CONF_NAME], data=connection, options=options
+        )
+
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:

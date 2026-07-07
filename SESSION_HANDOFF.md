@@ -43,9 +43,14 @@ ha-logo-plc/
     └── logo-modbus-notes.md
 ```
 
-Not created yet: YAML import, tests, CI. GitHub user (Babajko) is
-filled into manifest.json and README. LICENSE still says "Ruslan" —
-change if a different name should appear.
+Done: YAML import (`async_setup` + `async_step_import`), plus a
+ready-to-use `docs/example-configuration.yaml` for both PLCs with every
+mapped output from the original script. Switches use
+`has_entity_name = True` (friendly names like "LOGO1 Q1").
+
+Not created yet: tests, CI. GitHub user (Babajko) is filled into
+manifest.json and README. LICENSE still says "Ruslan" — change if a
+different name should appear.
 
 ## Before deploying — sanity checks in the venv
 

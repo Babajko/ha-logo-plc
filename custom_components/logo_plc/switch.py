@@ -44,6 +44,8 @@ async def async_setup_entry(
 class LogoSwitch(CoordinatorEntity[LogoCoordinator], SwitchEntity):
     """A LOGO! output: reads the Q coil, toggles via an impulse coil."""
 
+    _attr_has_entity_name = True
+
     def __init__(
         self,
         coordinator: LogoCoordinator,

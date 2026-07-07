@@ -63,7 +63,28 @@ One integration entry per PLC. Each output needs:
 | Icon            | Optional MDI icon                                   |
 | Device class    | Optional switch device class                        |
 
-YAML configuration is also accepted and imported into a config entry.
+### YAML
+
+Instead of clicking each output into the UI, you can describe the PLCs
+in `configuration.yaml`; the entries are imported and kept in sync on
+restart:
+
+```yaml
+logo_plc:
+  - name: LOGO1
+    host: 192.168.0.2
+    port: 502
+    slave: 1
+    scan_interval: 1
+    outputs:
+      - name: Q1
+        state_address: 8192   # Q coil to read
+        pulse_address: 21     # network-input coil that toggles it
+        pulse_duration: 1
+```
+
+A full example for a two-PLC setup is in
+[docs/example-configuration.yaml](docs/example-configuration.yaml).
 
 ## License
 
