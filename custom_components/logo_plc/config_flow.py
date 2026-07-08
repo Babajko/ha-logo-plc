@@ -14,6 +14,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers import selector
 
 from .const import (
     CONF_DEVICE_CLASS,
@@ -81,6 +82,15 @@ def _clean_output(user_input: dict[str, Any]) -> dict[str, Any]:
     if user_input.get(CONF_DEVICE_CLASS):
         output[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
     return output
+
+
+def _validate_outputs(raw: Any) -> list[dict[str, Any]]:
+    """Validate a list of outputs coming from the YAML editor."""
+    if raw is None:
+        raw = []
+    if not isinstance(raw, list):
+        raise vol.Invalid("outputs must be a list")
+    return [_clean_output(OUTPUT_SCHEMA(item)) for item in raw]
 
 
 async def _test_connection(host: str, port: int, slave: int) -> None:
@@ -187,7 +197,7 @@ class LogoOptionsFlow(OptionsFlow):
         menu = ["add_output"]
         if self._outputs:
             menu += ["edit_output", "remove_output"]
-        menu += ["connection", "save"]
+        menu += ["edit_yaml", "connection", "save"]
         return self.async_show_menu(step_id="init", menu_options=menu)
 
     async def async_step_add_output(
@@ -247,6 +257,28 @@ class LogoOptionsFlow(OptionsFlow):
             {vol.Optional("remove", default=[]): cv.multi_select(choices)}
         )
         return self.async_show_form(step_id="remove_output", data_schema=schema)
+
+    async def async_step_edit_yaml(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Edit the whole output list in a YAML code editor."""
+        errors: dict[str, str] = {}
+        suggested: list[dict[str, Any]] = self._outputs
+        if user_input is not None:
+            suggested = user_input.get("outputs") or []
+            try:
+                self._outputs = _validate_outputs(user_input.get("outputs"))
+            except vol.Invalid:
+                errors["base"] = "invalid_outputs"
+            else:
+                return await self.async_step_init()
+        schema = self.add_suggested_values_to_schema(
+            vol.Schema({vol.Required("outputs"): selector.ObjectSelector()}),
+            {"outputs": suggested},
+        )
+        return self.async_show_form(
+            step_id="edit_yaml", data_schema=schema, errors=errors
+        )
 
     async def async_step_connection(
         self, user_input: dict[str, Any] | None = None

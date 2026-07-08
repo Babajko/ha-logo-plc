@@ -28,6 +28,7 @@
           "add_output": "Add an output",
           "edit_output": "Edit an output",
           "remove_output": "Remove outputs",
+          "edit_yaml": "Edit outputs as YAML",
           "connection": "Connection settings",
           "save": "Save and finish"
         }
@@ -62,6 +63,13 @@
           "device_class": "Device class (optional)"
         }
       },
+      "edit_yaml": {
+        "title": "Edit outputs as YAML",
+        "description": "The full list of outputs as YAML. Each item needs at least name, state_address and pulse_address; pulse_duration, icon and device_class are optional.",
+        "data": {
+          "outputs": "Outputs"
+        }
+      },
       "remove_output": {
         "title": "Remove outputs",
         "data": {
@@ -77,6 +85,9 @@
           "scan_interval": "Scan interval (seconds)"
         }
       }
+    },
+    "error": {
+      "invalid_outputs": "Could not read the outputs. Each item needs name, state_address and pulse_address."
     }
   }
 }
