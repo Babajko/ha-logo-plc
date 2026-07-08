@@ -15,13 +15,41 @@ CONF_SLAVE = "slave"
 CONF_NAME = "name"
 CONF_SCAN_INTERVAL = "scan_interval"
 
-# Config entry options (per output).
-CONF_OUTPUTS = "outputs"
+# Config entry options (per entity).
+CONF_OUTPUTS = "outputs"  # storage key kept for backward compatibility
+CONF_TYPE = "type"
 CONF_STATE_ADDRESS = "state_address"
 CONF_PULSE_ADDRESS = "pulse_address"
+CONF_WRITE_ADDRESS = "write_address"
 CONF_PULSE_DURATION = "pulse_duration"
 CONF_ICON = "icon"
 CONF_DEVICE_CLASS = "device_class"
+
+# Entity types.
+TYPE_SENSOR = "sensor"  # read-only Q indicator (binary_sensor)
+TYPE_BUTTON = "button"  # impulse button (fires a pulse)
+TYPE_IMPULSE_SWITCH = "impulse_switch"  # reads Q, toggles via impulse
+TYPE_LATCHING_SWITCH = "latching_switch"  # reads Q, holds a control coil level
+TYPE_SIMPLE_SWITCH = "simple_switch"  # writes a control coil, assumed state
+
+SWITCH_DEVICE_CLASSES = ["switch", "outlet"]
+BINARY_SENSOR_DEVICE_CLASSES = [
+    "light",
+    "power",
+    "running",
+    "problem",
+    "connectivity",
+    "door",
+    "window",
+    "opening",
+    "motion",
+    "moisture",
+    "heat",
+    "smoke",
+    "safety",
+    "plug",
+    "presence",
+]
 
 # Defaults.
 DEFAULT_PORT = 502

@@ -17,26 +17,33 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers import selector
 
 from .const import (
-    CONF_DEVICE_CLASS,
     CONF_HOST,
-    CONF_ICON,
     CONF_NAME,
     CONF_OUTPUTS,
     CONF_PORT,
-    CONF_PULSE_ADDRESS,
-    CONF_PULSE_DURATION,
     CONF_SCAN_INTERVAL,
     CONF_SLAVE,
-    CONF_STATE_ADDRESS,
+    CONF_TYPE,
     DEFAULT_PORT,
-    DEFAULT_PULSE_DURATION,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLAVE,
     DOMAIN,
+    TYPE_BUTTON,
+    TYPE_IMPULSE_SWITCH,
+    TYPE_LATCHING_SWITCH,
+    TYPE_SENSOR,
+    TYPE_SIMPLE_SWITCH,
 )
 from .hub import LogoError, LogoHub
+from .models import clean_entity, entities_of, schema_for_type, validate_entity
 
-DEVICE_CLASSES = ["switch", "outlet"]
+TYPE_OPTIONS = [
+    {"value": TYPE_SENSOR, "label": "State indicator (read-only)"},
+    {"value": TYPE_BUTTON, "label": "Impulse button"},
+    {"value": TYPE_IMPULSE_SWITCH, "label": "Impulse switch (reads Q, pulses)"},
+    {"value": TYPE_LATCHING_SWITCH, "label": "Latching switch (reads Q, holds level)"},
+    {"value": TYPE_SIMPLE_SWITCH, "label": "Simple switch (no feedback)"},
+]
 
 CONNECTION_SCHEMA = vol.Schema(
     {
@@ -50,47 +57,6 @@ CONNECTION_SCHEMA = vol.Schema(
         ): vol.All(vol.Coerce(int), vol.Range(min=1)),
     }
 )
-
-OUTPUT_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_NAME): str,
-        vol.Required(CONF_STATE_ADDRESS): vol.All(
-            vol.Coerce(int), vol.Range(min=0)
-        ),
-        vol.Required(CONF_PULSE_ADDRESS): vol.All(
-            vol.Coerce(int), vol.Range(min=0)
-        ),
-        vol.Required(
-            CONF_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
-        ): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=10)),
-        vol.Optional(CONF_ICON): str,
-        vol.Optional(CONF_DEVICE_CLASS): vol.In(DEVICE_CLASSES),
-    }
-)
-
-
-def _clean_output(user_input: dict[str, Any]) -> dict[str, Any]:
-    """Normalise an output form submission, dropping empty optionals."""
-    output = {
-        CONF_NAME: user_input[CONF_NAME],
-        CONF_STATE_ADDRESS: user_input[CONF_STATE_ADDRESS],
-        CONF_PULSE_ADDRESS: user_input[CONF_PULSE_ADDRESS],
-        CONF_PULSE_DURATION: user_input[CONF_PULSE_DURATION],
-    }
-    if user_input.get(CONF_ICON):
-        output[CONF_ICON] = user_input[CONF_ICON]
-    if user_input.get(CONF_DEVICE_CLASS):
-        output[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
-    return output
-
-
-def _validate_outputs(raw: Any) -> list[dict[str, Any]]:
-    """Validate a list of outputs coming from the YAML editor."""
-    if raw is None:
-        raw = []
-    if not isinstance(raw, list):
-        raise vol.Invalid("outputs must be a list")
-    return [_clean_output(OUTPUT_SCHEMA(item)) for item in raw]
 
 
 async def _test_connection(host: str, port: int, slave: int) -> None:
@@ -181,100 +147,135 @@ class LogoConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class LogoOptionsFlow(OptionsFlow):
-    """Edit the PLC connection and its outputs from the UI."""
+    """Edit the PLC connection and its entities from the UI."""
 
     def __init__(self, config_entry: ConfigEntry) -> None:
         self._entry = config_entry
-        self._outputs: list[dict[str, Any]] = [
-            dict(output) for output in config_entry.options.get(CONF_OUTPUTS, [])
+        self._entities: list[dict[str, Any]] = [
+            dict(item) for item in entities_of(config_entry.options)
         ]
         self._connection: dict[str, Any] | None = None
         self._edit_index: int | None = None
+        self._pending_type: str | None = None
+        self._defaults: dict[str, Any] | None = None
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        menu = ["add_output"]
-        if self._outputs:
-            menu += ["edit_output", "remove_output"]
+        menu = ["add"]
+        if self._entities:
+            menu += ["edit", "remove"]
         menu += ["edit_yaml", "connection", "save"]
         return self.async_show_menu(step_id="init", menu_options=menu)
 
-    async def async_step_add_output(
+    async def async_step_add(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
-            self._outputs.append(_clean_output(user_input))
-            return await self.async_step_init()
-        return self.async_show_form(step_id="add_output", data_schema=OUTPUT_SCHEMA)
+            self._pending_type = user_input[CONF_TYPE]
+            self._edit_index = None
+            self._defaults = None
+            return await self.async_step_entity_form()
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_TYPE, default=TYPE_IMPULSE_SWITCH): (
+                    selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=TYPE_OPTIONS,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                )
+            }
+        )
+        return self.async_show_form(step_id="add", data_schema=schema)
 
-    async def async_step_edit_output(
+    async def async_step_edit(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        if not self._outputs:
+        if not self._entities:
             return await self.async_step_init()
         if user_input is not None:
-            self._edit_index = int(user_input["target"])
-            return await self.async_step_edit_form()
+            index = int(user_input["target"])
+            self._edit_index = index
+            self._pending_type = self._entities[index][CONF_TYPE]
+            self._defaults = self._entities[index]
+            return await self.async_step_entity_form()
         choices = {
-            str(index): output[CONF_NAME]
-            for index, output in enumerate(self._outputs)
+            str(index): f"{item[CONF_NAME]} ({item[CONF_TYPE]})"
+            for index, item in enumerate(self._entities)
         }
         schema = vol.Schema({vol.Required("target"): vol.In(choices)})
-        return self.async_show_form(step_id="edit_output", data_schema=schema)
+        return self.async_show_form(step_id="edit", data_schema=schema)
 
-    async def async_step_edit_form(
+    async def async_step_entity_form(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        if self._edit_index is None:
-            return await self.async_step_init()
+        assert self._pending_type is not None
         if user_input is not None:
-            self._outputs[self._edit_index] = _clean_output(user_input)
+            item = clean_entity(self._pending_type, user_input)
+            if self._edit_index is None:
+                self._entities.append(item)
+            else:
+                self._entities[self._edit_index] = item
             self._edit_index = None
+            self._pending_type = None
+            self._defaults = None
             return await self.async_step_init()
-        current = self._outputs[self._edit_index]
-        schema = self.add_suggested_values_to_schema(OUTPUT_SCHEMA, current)
-        return self.async_show_form(step_id="edit_form", data_schema=schema)
+        schema = schema_for_type(self._pending_type)
+        if self._defaults:
+            schema = self.add_suggested_values_to_schema(schema, self._defaults)
+        return self.async_show_form(
+            step_id="entity_form",
+            data_schema=schema,
+            description_placeholders={"type": self._pending_type},
+        )
 
-    async def async_step_remove_output(
+    async def async_step_remove(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        if not self._outputs:
+        if not self._entities:
             return await self.async_step_init()
         if user_input is not None:
             drop = set(user_input.get("remove", []))
-            self._outputs = [
-                output
-                for index, output in enumerate(self._outputs)
+            self._entities = [
+                item
+                for index, item in enumerate(self._entities)
                 if str(index) not in drop
             ]
             return await self.async_step_init()
         choices = {
-            str(index): output[CONF_NAME]
-            for index, output in enumerate(self._outputs)
+            str(index): f"{item[CONF_NAME]} ({item[CONF_TYPE]})"
+            for index, item in enumerate(self._entities)
         }
         schema = vol.Schema(
             {vol.Optional("remove", default=[]): cv.multi_select(choices)}
         )
-        return self.async_show_form(step_id="remove_output", data_schema=schema)
+        return self.async_show_form(step_id="remove", data_schema=schema)
 
     async def async_step_edit_yaml(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Edit the whole output list in a YAML code editor."""
+        """Edit the whole entity list in a YAML code editor."""
         errors: dict[str, str] = {}
-        suggested: list[dict[str, Any]] = self._outputs
+        suggested: list[dict[str, Any]] = self._entities
         if user_input is not None:
-            suggested = user_input.get("outputs") or []
-            try:
-                self._outputs = _validate_outputs(user_input.get("outputs"))
-            except vol.Invalid:
-                errors["base"] = "invalid_outputs"
+            raw = user_input.get("entities")
+            if raw is None:
+                raw = []
+            suggested = raw
+            if not isinstance(raw, list):
+                errors["base"] = "invalid_entities"
             else:
-                return await self.async_step_init()
+                try:
+                    self._entities = [validate_entity(item) for item in raw]
+                except vol.Invalid:
+                    errors["base"] = "invalid_entities"
+                else:
+                    return await self.async_step_init()
         schema = self.add_suggested_values_to_schema(
-            vol.Schema({vol.Required("outputs"): selector.ObjectSelector()}),
-            {"outputs": suggested},
+            vol.Schema({vol.Required("entities"): selector.ObjectSelector()}),
+            {"entities": suggested},
         )
         return self.async_show_form(
             step_id="edit_yaml", data_schema=schema, errors=errors
@@ -299,5 +300,5 @@ class LogoOptionsFlow(OptionsFlow):
                 self._entry, data=self._connection
             )
         return self.async_create_entry(
-            title="", data={CONF_OUTPUTS: self._outputs}
+            title="", data={CONF_OUTPUTS: self._entities}
         )

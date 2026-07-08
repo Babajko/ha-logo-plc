@@ -10,8 +10,15 @@
 #                 (taken from the original scripts; the mapping is
 #                 irregular by design).
 #
-# Note: LOGO1 Q6 and Q11 are omitted — the original script had no pulse
-# (network-input) coil for them, so they can't be controlled, only read.
+# Each entity has a `type` (default `impulse_switch` if omitted):
+#   sensor          - read-only indicator (state_address)
+#   button          - impulse button (pulse_address)
+#   impulse_switch  - reads Q, toggles via impulse (state + pulse address)
+#   latching_switch - reads Q, holds a control coil (state + write address)
+#   simple_switch   - writes a control coil, no feedback (write address)
+#
+# LOGO1 Q6 and Q11 had no pulse coil in the original program, so they are
+# added here as read-only `sensor` entities.
 
 logo_plc:
   - name: LOGO1
@@ -74,6 +81,12 @@ logo_plc:
       - name: Q20
         state_address: 8211
         pulse_address: 10
+      - name: Q6
+        type: sensor
+        state_address: 8197
+      - name: Q11
+        type: sensor
+        state_address: 8202
 
   - name: LOGO2
     host: 192.168.0.3

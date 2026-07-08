@@ -119,13 +119,39 @@ See `docs/logo-modbus-notes.md` for the full write-up. Key points:
 - Exact Pi5 deploy mechanics (SSH access, symlink vs pull, HA restart
   method) to be pinned down when we first deploy.
 
+## Entity types
+
+Five entity types, stored per item under the `outputs` options key
+(name kept for back-compat) with a `type` field. Legacy items with no
+`type` default to `impulse_switch`.
+
+- `sensor` — read-only `binary_sensor` of a Q coil. For outputs with no
+  control coil (e.g. LOGO1 Q6, Q11).
+- `button` — `button` that pulses a network-input coil.
+- `impulse_switch` — the original: reads Q, smart-toggle via pulse.
+- `latching_switch` — reads Q, writes a control coil at a level (write
+  1/0). Confirmed model: writing the network-input coil sets the Q it
+  feeds. For level-driven (not impulse) program blocks.
+- `simple_switch` — writes a control coil, assumed state, no Q read.
+
+Reads for the coordinator are gathered from sensor / impulse / latching
+entities. Control uses `hub.pulse` (button, impulse) or
+`hub.write_coil` (latching, simple). Types are chosen in the config
+flow (type selector on add/edit) and validated per type in YAML import
+and the YAML editor. Shared schema/validation lives in `models.py`.
+
 ## Icon
 
 - Chosen icon: a teal house silhouette with an amber toggle switch (on)
   inside it. Source at `icons/icon.svg`; the five earlier candidates are
   kept in `icons/options/`. Palette: teal `#0d8a99`, amber `#ffbe33`,
-  white. To show in the HA UI, rasterize to PNG (256 + 512) and submit
-  to the `home-assistant/brands` repo under `custom_integrations/logo_plc/`.
+  white. Drawn edge-to-edge so it passes brand trim rules.
+- Display in HA: as of HA 2026.3 the brands-repo PR is obsolete for
+  custom integrations. Instead, PNGs go in a local
+  `custom_components/logo_plc/brand/` folder (icon.png 256, icon@2x.png
+  512, optional logo.png / dark_*), which take priority over the CDN.
+  See https://developers.home-assistant.io/blog/2026/02/24/brands-proxy-api
+  Needs HA 2026.3+.
 
 ## Conventions (borrowed from the vartovyi project)
 

@@ -25,55 +25,51 @@
       "init": {
         "title": "LOGO! configuration",
         "menu_options": {
-          "add_output": "Add an output",
-          "edit_output": "Edit an output",
-          "remove_output": "Remove outputs",
-          "edit_yaml": "Edit outputs as YAML",
+          "add": "Add an entity",
+          "edit": "Edit an entity",
+          "remove": "Remove entities",
+          "edit_yaml": "Edit all as YAML",
           "connection": "Connection settings",
           "save": "Save and finish"
         }
       },
-      "add_output": {
-        "title": "Add an output",
-        "description": "State address is the Q coil to read (e.g. 8192 for Q1). Pulse address is the network-input coil that toggles the relay.",
+      "add": {
+        "title": "Add an entity",
+        "description": "Pick what kind of entity to create.",
+        "data": {
+          "type": "Entity type"
+        }
+      },
+      "edit": {
+        "title": "Edit an entity",
+        "data": {
+          "target": "Entity to edit"
+        }
+      },
+      "entity_form": {
+        "title": "Entity settings",
+        "description": "State address is a Q coil to read (e.g. 8192 for Q1). Pulse address fires an impulse. Write address holds a control coil at a level.",
         "data": {
           "name": "Name",
-          "state_address": "State address (read)",
-          "pulse_address": "Pulse address (write)",
+          "state_address": "State address (read Q)",
+          "pulse_address": "Pulse address (impulse)",
+          "write_address": "Write address (control coil)",
           "pulse_duration": "Pulse duration (seconds)",
           "icon": "Icon (optional, e.g. mdi:lightbulb)",
           "device_class": "Device class (optional)"
         }
       },
-      "edit_output": {
-        "title": "Edit an output",
+      "remove": {
+        "title": "Remove entities",
         "data": {
-          "target": "Output to edit"
-        }
-      },
-      "edit_form": {
-        "title": "Edit output",
-        "description": "State address is the Q coil to read. Pulse address is the network-input coil that toggles the relay.",
-        "data": {
-          "name": "Name",
-          "state_address": "State address (read)",
-          "pulse_address": "Pulse address (write)",
-          "pulse_duration": "Pulse duration (seconds)",
-          "icon": "Icon (optional, e.g. mdi:lightbulb)",
-          "device_class": "Device class (optional)"
+          "remove": "Entities to remove"
         }
       },
       "edit_yaml": {
-        "title": "Edit outputs as YAML",
-        "description": "The full list of outputs as YAML. Each item needs at least name, state_address and pulse_address; pulse_duration, icon and device_class are optional.",
+        "title": "Edit all as YAML",
+        "description": "The full list of entities as YAML. Each item needs a type and its address fields.",
         "data": {
-          "outputs": "Outputs"
-        }
-      },
-      "remove_output": {
-        "title": "Remove outputs",
-        "data": {
-          "remove": "Outputs to remove"
+          "entities": "Entities"
         }
       },
       "connection": {
@@ -87,7 +83,7 @@
       }
     },
     "error": {
-      "invalid_outputs": "Could not read the outputs. Each item needs name, state_address and pulse_address."
+      "invalid_entities": "Could not read the entities. Check that each item has a valid type and the required address fields."
     }
   }
 }

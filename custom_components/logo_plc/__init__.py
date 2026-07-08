@@ -14,44 +14,24 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
-    CONF_DEVICE_CLASS,
     CONF_HOST,
-    CONF_ICON,
     CONF_NAME,
     CONF_OUTPUTS,
     CONF_PORT,
-    CONF_PULSE_ADDRESS,
-    CONF_PULSE_DURATION,
     CONF_SCAN_INTERVAL,
     CONF_SLAVE,
-    CONF_STATE_ADDRESS,
     DEFAULT_PORT,
-    DEFAULT_PULSE_DURATION,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLAVE,
     DOMAIN,
 )
 from .coordinator import LogoCoordinator
 from .hub import LogoError, LogoHub
+from .models import entities_of, read_address, validate_entity
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.SWITCH]
-
-_DEVICE_CLASSES = ["switch", "outlet"]
-
-OUTPUT_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_NAME): cv.string,
-        vol.Required(CONF_STATE_ADDRESS): cv.positive_int,
-        vol.Required(CONF_PULSE_ADDRESS): cv.positive_int,
-        vol.Optional(
-            CONF_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
-        ): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=10)),
-        vol.Optional(CONF_ICON): cv.string,
-        vol.Optional(CONF_DEVICE_CLASS): vol.In(_DEVICE_CLASSES),
-    }
-)
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SWITCH]
 
 PLC_SCHEMA = vol.Schema(
     {
@@ -64,7 +44,7 @@ PLC_SCHEMA = vol.Schema(
         vol.Optional(
             CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
         ): cv.positive_int,
-        vol.Optional(CONF_OUTPUTS, default=list): [OUTPUT_SCHEMA],
+        vol.Optional(CONF_OUTPUTS, default=list): [validate_entity],
     }
 )
 
@@ -101,8 +81,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         slave=entry.data.get(CONF_SLAVE, DEFAULT_SLAVE),
     )
 
-    outputs = entry.options.get(CONF_OUTPUTS, [])
-    state_addresses = [output[CONF_STATE_ADDRESS] for output in outputs]
+    entities = entities_of(entry.options)
+    state_addresses = [
+        addr for item in entities if (addr := read_address(item)) is not None
+    ]
     coordinator = LogoCoordinator(
         hass,
         hub,
@@ -131,5 +113,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _async_reload_on_update(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload the entry when its options (outputs) change."""
+    """Reload the entry when its options (entities) change."""
     await hass.config_entries.async_reload(entry.entry_id)

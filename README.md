@@ -32,6 +32,26 @@ configured per output.
 - State: read of the output coil (e.g. 8192 for Q1).
 - Control: pulse on the mapped coil (true, wait, false).
 
+## Entity types
+
+Each configured entity has a type, so one output can be exactly what it
+needs to be:
+
+- `sensor` — read-only indicator. Reads a Q coil and shows on/off. For
+  outputs you only monitor (a lamp with no control coil).
+- `button` — momentary impulse button. Pressing it pulses a
+  network-input coil. Restores the old push-button behaviour.
+- `impulse_switch` — reads Q for state and toggles an impulse relay with
+  a pulse (only pulses when the state needs to change).
+- `latching_switch` — reads Q for state and holds a control coil at a
+  level (write 1 = on, 0 = off). For imitating a normal light switch.
+- `simple_switch` — writes a control coil and keeps its own state, with
+  no reading back from the PLC.
+
+Everything is configurable from the UI (Settings -> Devices & Services
+-> the PLC -> Configure), including an "Edit all as YAML" code editor,
+or from YAML.
+
 ## Requirements
 
 - Home Assistant with HACS installed.
