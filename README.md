@@ -86,6 +86,32 @@ logo_plc:
 A full example for a two-PLC setup is in
 [docs/example-configuration.yaml](docs/example-configuration.yaml).
 
+To keep `configuration.yaml` clean, move the config to its own file and
+pull it in with `!include`:
+
+```yaml
+# configuration.yaml
+logo_plc: !include logo_plc.yaml
+```
+
+```yaml
+# logo_plc.yaml — just the list of PLCs (no top-level key)
+- name: LOGO1
+  host: 192.168.0.2
+  port: 502
+  slave: 1
+  scan_interval: 1
+  outputs:
+    - name: Q1
+      state_address: 8192
+      pulse_address: 21
+```
+
+Everything is also editable from the UI: Settings -> Devices &
+Services -> the PLC -> Configure lets you add, edit and remove outputs
+and change the connection, with no file editing. UI edits are stored in
+Home Assistant, not in `configuration.yaml`.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

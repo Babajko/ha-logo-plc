@@ -23,14 +23,16 @@
   "options": {
     "step": {
       "init": {
-        "title": "LOGO! outputs",
+        "title": "LOGO! configuration",
         "menu_options": {
-          "add": "Add an output",
-          "remove": "Remove outputs",
+          "add_output": "Add an output",
+          "edit_output": "Edit an output",
+          "remove_output": "Remove outputs",
+          "connection": "Connection settings",
           "save": "Save and finish"
         }
       },
-      "add": {
+      "add_output": {
         "title": "Add an output",
         "description": "State address is the Q coil to read (e.g. 8192 for Q1). Pulse address is the network-input coil that toggles the relay.",
         "data": {
@@ -42,10 +44,37 @@
           "device_class": "Device class (optional)"
         }
       },
-      "remove": {
+      "edit_output": {
+        "title": "Edit an output",
+        "data": {
+          "target": "Output to edit"
+        }
+      },
+      "edit_form": {
+        "title": "Edit output",
+        "description": "State address is the Q coil to read. Pulse address is the network-input coil that toggles the relay.",
+        "data": {
+          "name": "Name",
+          "state_address": "State address (read)",
+          "pulse_address": "Pulse address (write)",
+          "pulse_duration": "Pulse duration (seconds)",
+          "icon": "Icon (optional, e.g. mdi:lightbulb)",
+          "device_class": "Device class (optional)"
+        }
+      },
+      "remove_output": {
         "title": "Remove outputs",
         "data": {
           "remove": "Outputs to remove"
+        }
+      },
+      "connection": {
+        "title": "Connection settings",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "slave": "Unit id",
+          "scan_interval": "Scan interval (seconds)"
         }
       }
     }

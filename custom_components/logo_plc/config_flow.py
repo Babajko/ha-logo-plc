@@ -37,6 +37,51 @@ from .hub import LogoError, LogoHub
 
 DEVICE_CLASSES = ["switch", "outlet"]
 
+CONNECTION_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_HOST): str,
+        vol.Required(CONF_PORT, default=DEFAULT_PORT): cv.port,
+        vol.Required(CONF_SLAVE, default=DEFAULT_SLAVE): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=247)
+        ),
+        vol.Required(
+            CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
+        ): vol.All(vol.Coerce(int), vol.Range(min=1)),
+    }
+)
+
+OUTPUT_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_NAME): str,
+        vol.Required(CONF_STATE_ADDRESS): vol.All(
+            vol.Coerce(int), vol.Range(min=0)
+        ),
+        vol.Required(CONF_PULSE_ADDRESS): vol.All(
+            vol.Coerce(int), vol.Range(min=0)
+        ),
+        vol.Required(
+            CONF_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
+        ): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=10)),
+        vol.Optional(CONF_ICON): str,
+        vol.Optional(CONF_DEVICE_CLASS): vol.In(DEVICE_CLASSES),
+    }
+)
+
+
+def _clean_output(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Normalise an output form submission, dropping empty optionals."""
+    output = {
+        CONF_NAME: user_input[CONF_NAME],
+        CONF_STATE_ADDRESS: user_input[CONF_STATE_ADDRESS],
+        CONF_PULSE_ADDRESS: user_input[CONF_PULSE_ADDRESS],
+        CONF_PULSE_DURATION: user_input[CONF_PULSE_DURATION],
+    }
+    if user_input.get(CONF_ICON):
+        output[CONF_ICON] = user_input[CONF_ICON]
+    if user_input.get(CONF_DEVICE_CLASS):
+        output[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
+    return output
+
 
 async def _test_connection(host: str, port: int, slave: int) -> None:
     """Open and close a connection, raising LogoError on failure."""
@@ -126,57 +171,62 @@ class LogoConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class LogoOptionsFlow(OptionsFlow):
-    """Add, remove and save the PLC's outputs."""
+    """Edit the PLC connection and its outputs from the UI."""
 
     def __init__(self, config_entry: ConfigEntry) -> None:
         self._entry = config_entry
-        self._outputs: list[dict[str, Any]] = list(
-            config_entry.options.get(CONF_OUTPUTS, [])
-        )
+        self._outputs: list[dict[str, Any]] = [
+            dict(output) for output in config_entry.options.get(CONF_OUTPUTS, [])
+        ]
+        self._connection: dict[str, Any] | None = None
+        self._edit_index: int | None = None
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        return self.async_show_menu(
-            step_id="init", menu_options=["add", "remove", "save"]
-        )
+        menu = ["add_output"]
+        if self._outputs:
+            menu += ["edit_output", "remove_output"]
+        menu += ["connection", "save"]
+        return self.async_show_menu(step_id="init", menu_options=menu)
 
-    async def async_step_add(
+    async def async_step_add_output(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
-            output: dict[str, Any] = {
-                CONF_NAME: user_input[CONF_NAME],
-                CONF_STATE_ADDRESS: user_input[CONF_STATE_ADDRESS],
-                CONF_PULSE_ADDRESS: user_input[CONF_PULSE_ADDRESS],
-                CONF_PULSE_DURATION: user_input[CONF_PULSE_DURATION],
-            }
-            if user_input.get(CONF_ICON):
-                output[CONF_ICON] = user_input[CONF_ICON]
-            if user_input.get(CONF_DEVICE_CLASS):
-                output[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
-            self._outputs.append(output)
+            self._outputs.append(_clean_output(user_input))
             return await self.async_step_init()
+        return self.async_show_form(step_id="add_output", data_schema=OUTPUT_SCHEMA)
 
-        schema = vol.Schema(
-            {
-                vol.Required(CONF_NAME): str,
-                vol.Required(CONF_STATE_ADDRESS): vol.All(
-                    vol.Coerce(int), vol.Range(min=0)
-                ),
-                vol.Required(CONF_PULSE_ADDRESS): vol.All(
-                    vol.Coerce(int), vol.Range(min=0)
-                ),
-                vol.Required(
-                    CONF_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
-                ): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=10)),
-                vol.Optional(CONF_ICON): str,
-                vol.Optional(CONF_DEVICE_CLASS): vol.In(DEVICE_CLASSES),
-            }
-        )
-        return self.async_show_form(step_id="add", data_schema=schema)
+    async def async_step_edit_output(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if not self._outputs:
+            return await self.async_step_init()
+        if user_input is not None:
+            self._edit_index = int(user_input["target"])
+            return await self.async_step_edit_form()
+        choices = {
+            str(index): output[CONF_NAME]
+            for index, output in enumerate(self._outputs)
+        }
+        schema = vol.Schema({vol.Required("target"): vol.In(choices)})
+        return self.async_show_form(step_id="edit_output", data_schema=schema)
 
-    async def async_step_remove(
+    async def async_step_edit_form(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if self._edit_index is None:
+            return await self.async_step_init()
+        if user_input is not None:
+            self._outputs[self._edit_index] = _clean_output(user_input)
+            self._edit_index = None
+            return await self.async_step_init()
+        current = self._outputs[self._edit_index]
+        schema = self.add_suggested_values_to_schema(OUTPUT_SCHEMA, current)
+        return self.async_show_form(step_id="edit_form", data_schema=schema)
+
+    async def async_step_remove_output(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if not self._outputs:
@@ -189,7 +239,6 @@ class LogoOptionsFlow(OptionsFlow):
                 if str(index) not in drop
             ]
             return await self.async_step_init()
-
         choices = {
             str(index): output[CONF_NAME]
             for index, output in enumerate(self._outputs)
@@ -197,11 +246,26 @@ class LogoOptionsFlow(OptionsFlow):
         schema = vol.Schema(
             {vol.Optional("remove", default=[]): cv.multi_select(choices)}
         )
-        return self.async_show_form(step_id="remove", data_schema=schema)
+        return self.async_show_form(step_id="remove_output", data_schema=schema)
+
+    async def async_step_connection(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            self._connection = {**self._entry.data, **user_input}
+            return await self.async_step_init()
+        schema = self.add_suggested_values_to_schema(
+            CONNECTION_SCHEMA, self._entry.data
+        )
+        return self.async_show_form(step_id="connection", data_schema=schema)
 
     async def async_step_save(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        if self._connection is not None:
+            self.hass.config_entries.async_update_entry(
+                self._entry, data=self._connection
+            )
         return self.async_create_entry(
             title="", data={CONF_OUTPUTS: self._outputs}
         )
