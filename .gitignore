@@ -25,3 +25,8 @@ config/
 .idea/
 .vscode/
 .DS_Store
+
+# Internal working notes — kept local, not published
+DECISIONS.md
+LEARNING_LOG.md
+SESSION_HANDOFF.md
