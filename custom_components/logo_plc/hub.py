@@ -51,10 +51,12 @@ class LogoHub:
         port: int = 502,
         slave: int = 1,
         timeout: float = 3.0,
+        reconnect_delay: float = 1.0,
     ) -> None:
         self._host = host
         self._port = port
         self._slave = slave
+        self._reconnect_delay = reconnect_delay
         self._client = AsyncModbusTcpClient(host, port=port, timeout=timeout)
         self._lock = asyncio.Lock()
 
@@ -112,6 +114,10 @@ class LogoHub:
         async with self._lock:
             last_err: Exception | None = None
             for attempt in (1, 2):
+                if attempt > 1:
+                    # This LOGO! holds a single Modbus connection, so give
+                    # it time to release the old slot before reconnecting.
+                    await asyncio.sleep(self._reconnect_delay)
                 try:
                     await self._ensure_connected()
                     result = await call()
