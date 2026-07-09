@@ -3,11 +3,17 @@
 Pure Python — no Home Assistant imports — so it can be driven from the
 standalone probe script as well as from the integration.
 
-pymodbus changed the unit-id keyword from ``slave`` to ``device_id``
-across 3.x releases, so the read/write helpers try ``slave`` first and
-fall back to ``device_id``. The LOGO! default unit id is 1, which is
-also both keywords' default, so this stays correct even on versions
-that quietly ignore the argument.
+LOGO! 8 Modbus TCP is known to drop connections under continuous
+polling. To cope, every request runs under a lock, with a per-request
+timeout, and a single reconnect-and-retry: on a connection error the
+stale socket is closed and the request is tried once more on a fresh
+connection. Closing the dead socket also avoids leaking one of the
+LOGO!'s limited (8) connection slots.
+
+pymodbus renamed the unit-id keyword from ``slave`` to ``device_id``
+across 3.x, so the raw calls try ``slave`` first and fall back to
+``device_id``. The LOGO! default unit id is 1, which is both keywords'
+default too.
 """
 
 from __future__ import annotations
@@ -16,8 +22,12 @@ import asyncio
 import logging
 
 from pymodbus.client import AsyncModbusTcpClient
+from pymodbus.exceptions import ModbusException
 
 _LOGGER = logging.getLogger(__name__)
+
+# Errors that mean "connection trouble" and are worth one reconnect+retry.
+_CONNECTION_ERRORS = (ModbusException, asyncio.TimeoutError, OSError)
 
 
 class LogoError(Exception):
@@ -35,11 +45,17 @@ class LogoReadError(LogoError):
 class LogoHub:
     """Owns one Modbus TCP connection to a LOGO! and serialises access."""
 
-    def __init__(self, host: str, port: int = 502, slave: int = 1) -> None:
+    def __init__(
+        self,
+        host: str,
+        port: int = 502,
+        slave: int = 1,
+        timeout: float = 3.0,
+    ) -> None:
         self._host = host
         self._port = port
         self._slave = slave
-        self._client = AsyncModbusTcpClient(host, port=port)
+        self._client = AsyncModbusTcpClient(host, port=port, timeout=timeout)
         self._lock = asyncio.Lock()
 
     @property
@@ -57,15 +73,14 @@ class LogoHub:
 
     async def close(self) -> None:
         async with self._lock:
-            self._client.close()
+            self._safe_close()
 
     async def read_coils(self, address: int, count: int = 1) -> list[bool]:
         """Read ``count`` coils starting at ``address`` (FC01)."""
-        async with self._lock:
-            await self._ensure_connected()
-            result = await self._read_coils_raw(address, count)
-        if result is None or result.isError():
-            raise LogoReadError(f"read_coils(address={address}, count={count}): {result}")
+        result = await self._request(
+            lambda: self._read_coils_raw(address, count),
+            f"read_coils(address={address}, count={count})",
+        )
         return list(result.bits[:count])
 
     async def read_coil(self, address: int) -> bool:
@@ -73,17 +88,16 @@ class LogoHub:
 
     async def write_coil(self, address: int, value: bool) -> None:
         """Write a single coil (FC05)."""
-        async with self._lock:
-            await self._ensure_connected()
-            result = await self._write_coil_raw(address, value)
-        if result is None or result.isError():
-            raise LogoReadError(f"write_coil(address={address}, value={value}): {result}")
+        await self._request(
+            lambda: self._write_coil_raw(address, value),
+            f"write_coil(address={address}, value={value})",
+        )
 
     async def pulse(self, address: int, duration: float = 1.0) -> None:
         """Impulse a coil: set true, hold ``duration`` seconds, set false.
 
-        The lock is released during the wait, so state reads can still
-        run while the pulse is held.
+        The lock is released between the two writes, so state reads can
+        still run while the pulse is held.
         """
         await self.write_coil(address, True)
         try:
@@ -93,6 +107,25 @@ class LogoHub:
 
     # -- internals -------------------------------------------------------
 
+    async def _request(self, call, desc: str):
+        """Run one Modbus call with a single reconnect-and-retry."""
+        async with self._lock:
+            last_err: Exception | None = None
+            for attempt in (1, 2):
+                try:
+                    await self._ensure_connected()
+                    result = await call()
+                except _CONNECTION_ERRORS as err:
+                    last_err = err
+                    self._safe_close()
+                    continue
+                if result is None or result.isError():
+                    # A data-level error (e.g. illegal address) won't be
+                    # fixed by retrying, so surface it directly.
+                    raise LogoReadError(f"{desc}: {result}")
+                return result
+        raise LogoConnectionError(f"{desc} failed after retry: {last_err}")
+
     async def _ensure_connected(self) -> None:
         if self._client.connected:
             return
@@ -101,6 +134,12 @@ class LogoHub:
         await self._client.connect()
         if not self._client.connected:
             raise LogoConnectionError(f"cannot connect to {self._host}:{self._port}")
+
+    def _safe_close(self) -> None:
+        try:
+            self._client.close()
+        except Exception:  # noqa: BLE001 - close is best effort
+            pass
 
     async def _read_coils_raw(self, address: int, count: int):
         try:
