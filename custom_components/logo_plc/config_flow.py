@@ -81,11 +81,15 @@ CONTROL_OPTIONS = [
 
 
 def _number(minimum: float, maximum: float, step: float, mode, unit=None):
-    return selector.NumberSelector(
-        selector.NumberSelectorConfig(
-            min=minimum, max=maximum, step=step, mode=mode, unit_of_measurement=unit
-        )
-    )
+    config: dict[str, Any] = {
+        "min": minimum,
+        "max": maximum,
+        "step": step,
+        "mode": mode,
+    }
+    if unit is not None:
+        config["unit_of_measurement"] = unit
+    return selector.NumberSelector(selector.NumberSelectorConfig(**config))
 
 
 def _q_selector() -> selector.SelectSelector:
@@ -164,9 +168,7 @@ def _entity_schema(
             _device_class_selector(domain)
         )
 
-    fields[vol.Required("advanced")] = section(
-        vol.Schema(advanced), {"collapsed": True}
-    )
+    fields["advanced"] = section(vol.Schema(advanced), {"collapsed": True})
     return vol.Schema(fields)
 
 
