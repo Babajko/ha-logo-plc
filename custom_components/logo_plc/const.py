@@ -54,7 +54,9 @@ ALL_CONTROLS = (CTRL_IMPULSE, CTRL_LATCHING, CTRL_SIMPLE)
 DEFAULT_ICONS = {
     DOM_SWITCH: "mdi:light-switch",
     DOM_BUTTON: "mdi:gesture-tap-button",
-    DOM_BINARY_SENSOR: "mdi:electric-switch",
+    # Indicators are usually lamps here; a bulb reads as light and HA
+    # tints it amber when on, grey when off.
+    DOM_BINARY_SENSOR: "mdi:lightbulb",
 }
 
 SWITCH_DEVICE_CLASSES = ["switch", "outlet"]
