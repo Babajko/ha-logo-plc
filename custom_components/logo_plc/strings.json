@@ -34,29 +34,43 @@
         }
       },
       "add": {
-        "title": "Add an entity",
-        "description": "Pick what kind of entity to create.",
+        "title": "What is it?",
+        "description": "Pick what the output is. Lights and fans get proper light/fan controls and icons.",
         "data": {
-          "type": "Entity type"
+          "domain": "Entity type"
+        }
+      },
+      "control": {
+        "title": "How is it controlled?",
+        "description": "Impulse pulses a coil (impulse relay). Latching holds a coil at a level. Simple holds a coil without reading the output back.",
+        "data": {
+          "control": "Control mode"
+        }
+      },
+      "entity_form": {
+        "title": "Entity settings",
+        "description": "State is the output coil to read (pick the Q). Pulse/Write is the network-input coil that drives it.",
+        "data": {
+          "name": "Name",
+          "state_address": "Output (Q)",
+          "pulse_address": "Pulse coil",
+          "write_address": "Control coil"
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced",
+            "data": {
+              "pulse_duration": "Pulse duration",
+              "icon": "Icon",
+              "device_class": "Device class"
+            }
+          }
         }
       },
       "edit": {
         "title": "Edit an entity",
         "data": {
           "target": "Entity to edit"
-        }
-      },
-      "entity_form": {
-        "title": "Entity settings",
-        "description": "State address is a Q coil to read (e.g. 8192 for Q1). Pulse address fires an impulse. Write address holds a control coil at a level.",
-        "data": {
-          "name": "Name",
-          "state_address": "State address (read Q)",
-          "pulse_address": "Pulse address (impulse)",
-          "write_address": "Write address (control coil)",
-          "pulse_duration": "Pulse duration (seconds)",
-          "icon": "Icon (optional, e.g. mdi:lightbulb)",
-          "device_class": "Device class (optional)"
         }
       },
       "remove": {
@@ -67,7 +81,7 @@
       },
       "edit_yaml": {
         "title": "Edit all as YAML",
-        "description": "The full list of entities as YAML. Each item needs a type and its address fields.",
+        "description": "The full list of entities as YAML. Each item needs a domain (light/fan/switch/binary_sensor/button), a control mode for controllable ones, and its address fields.",
         "data": {
           "entities": "Entities"
         }
@@ -83,7 +97,7 @@
       }
     },
     "error": {
-      "invalid_entities": "Could not read the entities. Check that each item has a valid type and the required address fields."
+      "invalid_entities": "Could not read the entities. Check that each has a valid domain, control mode and the required address fields."
     }
   }
 }

@@ -1,7 +1,7 @@
-"""Entity type schemas and helpers, shared by setup and the config flow.
+"""Entity config: migration, validation and helpers.
 
-Kept free of Home Assistant imports so both YAML import validation and
-the config/options flow can reuse the same rules.
+Shared by YAML import, the YAML editor and the config flow. Kept free
+of Home Assistant imports so all of those can reuse it.
 """
 
 from __future__ import annotations
@@ -11,8 +11,11 @@ from typing import Any
 import voluptuous as vol
 
 from .const import (
-    BINARY_SENSOR_DEVICE_CLASSES,
+    ALL_CONTROLS,
+    ALL_DOMAINS,
+    CONF_CONTROL,
     CONF_DEVICE_CLASS,
+    CONF_DOMAIN,
     CONF_ICON,
     CONF_NAME,
     CONF_OUTPUTS,
@@ -21,8 +24,13 @@ from .const import (
     CONF_STATE_ADDRESS,
     CONF_TYPE,
     CONF_WRITE_ADDRESS,
-    DEFAULT_PULSE_DURATION,
-    SWITCH_DEVICE_CLASSES,
+    CONTROLLABLE_DOMAINS,
+    CTRL_IMPULSE,
+    CTRL_LATCHING,
+    CTRL_SIMPLE,
+    DOM_BINARY_SENSOR,
+    DOM_BUTTON,
+    DOM_SWITCH,
     TYPE_BUTTON,
     TYPE_IMPULSE_SWITCH,
     TYPE_LATCHING_SWITCH,
@@ -30,127 +38,97 @@ from .const import (
     TYPE_SIMPLE_SWITCH,
 )
 
-ENTITY_TYPES = (
-    TYPE_SENSOR,
-    TYPE_BUTTON,
-    TYPE_IMPULSE_SWITCH,
-    TYPE_LATCHING_SWITCH,
-    TYPE_SIMPLE_SWITCH,
-)
+# Legacy `type` -> (domain, control).
+_LEGACY_MAP: dict[str, tuple[str, str | None]] = {
+    TYPE_SENSOR: (DOM_BINARY_SENSOR, None),
+    TYPE_BUTTON: (DOM_BUTTON, None),
+    TYPE_IMPULSE_SWITCH: (DOM_SWITCH, CTRL_IMPULSE),
+    TYPE_LATCHING_SWITCH: (DOM_SWITCH, CTRL_LATCHING),
+    TYPE_SIMPLE_SWITCH: (DOM_SWITCH, CTRL_SIMPLE),
+}
 
-_ADDRESS = vol.All(vol.Coerce(int), vol.Range(min=0))
-_DURATION = vol.All(vol.Coerce(float), vol.Range(min=0.1, max=10))
-
-# Which optional/typed fields each type accepts (used by clean_entity).
-_NUMERIC_FIELDS = (
-    CONF_STATE_ADDRESS,
-    CONF_PULSE_ADDRESS,
-    CONF_WRITE_ADDRESS,
-    CONF_PULSE_DURATION,
-)
-_TEXT_FIELDS = (CONF_ICON, CONF_DEVICE_CLASS)
-
-# Entities whose state comes from reading a coil.
-_READ_TYPES = (TYPE_SENSOR, TYPE_IMPULSE_SWITCH, TYPE_LATCHING_SWITCH)
+_DEVICE_CLASS_DOMAINS = (DOM_SWITCH, DOM_BINARY_SENSOR)
 
 
-def schema_for_type(entity_type: str) -> vol.Schema:
-    """Return the form/validation schema for one entity type (no type key)."""
-    name = {vol.Required(CONF_NAME): str}
-    icon = {vol.Optional(CONF_ICON): str}
-    if entity_type == TYPE_SENSOR:
-        return vol.Schema(
-            {
-                **name,
-                vol.Required(CONF_STATE_ADDRESS): _ADDRESS,
-                **icon,
-                vol.Optional(CONF_DEVICE_CLASS): vol.In(BINARY_SENSOR_DEVICE_CLASSES),
-            }
-        )
-    if entity_type == TYPE_BUTTON:
-        return vol.Schema(
-            {
-                **name,
-                vol.Required(CONF_PULSE_ADDRESS): _ADDRESS,
-                vol.Optional(
-                    CONF_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
-                ): _DURATION,
-                **icon,
-            }
-        )
-    if entity_type == TYPE_IMPULSE_SWITCH:
-        return vol.Schema(
-            {
-                **name,
-                vol.Required(CONF_STATE_ADDRESS): _ADDRESS,
-                vol.Required(CONF_PULSE_ADDRESS): _ADDRESS,
-                vol.Optional(
-                    CONF_PULSE_DURATION, default=DEFAULT_PULSE_DURATION
-                ): _DURATION,
-                **icon,
-                vol.Optional(CONF_DEVICE_CLASS): vol.In(SWITCH_DEVICE_CLASSES),
-            }
-        )
-    if entity_type == TYPE_LATCHING_SWITCH:
-        return vol.Schema(
-            {
-                **name,
-                vol.Required(CONF_STATE_ADDRESS): _ADDRESS,
-                vol.Required(CONF_WRITE_ADDRESS): _ADDRESS,
-                **icon,
-                vol.Optional(CONF_DEVICE_CLASS): vol.In(SWITCH_DEVICE_CLASSES),
-            }
-        )
-    if entity_type == TYPE_SIMPLE_SWITCH:
-        return vol.Schema(
-            {
-                **name,
-                vol.Required(CONF_WRITE_ADDRESS): _ADDRESS,
-                **icon,
-                vol.Optional(CONF_DEVICE_CLASS): vol.In(SWITCH_DEVICE_CLASSES),
-            }
-        )
-    raise vol.Invalid(f"unknown entity type: {entity_type}")
-
-
-def clean_entity(entity_type: str, data: dict[str, Any]) -> dict[str, Any]:
-    """Build a stored entity dict from validated form data."""
-    item: dict[str, Any] = {CONF_TYPE: entity_type, CONF_NAME: data[CONF_NAME]}
-    for key in _NUMERIC_FIELDS:
-        if data.get(key) is not None:
-            item[key] = data[key]
-    for key in _TEXT_FIELDS:
-        if data.get(key):
-            item[key] = data[key]
+def _normalize(item: dict[str, Any]) -> dict[str, Any]:
+    """Return the item with a domain (migrating a legacy `type` if needed)."""
+    item = dict(item)
+    if CONF_DOMAIN not in item:
+        legacy = item.pop(CONF_TYPE, TYPE_IMPULSE_SWITCH)
+        domain, control = _LEGACY_MAP.get(legacy, (DOM_SWITCH, CTRL_IMPULSE))
+        item[CONF_DOMAIN] = domain
+        if control and CONF_CONTROL not in item:
+            item[CONF_CONTROL] = control
     return item
+
+
+def required_addresses(domain: str, control: str | None) -> tuple[str, ...]:
+    """Address fields an entity of this domain/control must have."""
+    if domain == DOM_BINARY_SENSOR:
+        return (CONF_STATE_ADDRESS,)
+    if domain == DOM_BUTTON:
+        return (CONF_PULSE_ADDRESS,)
+    if control == CTRL_IMPULSE:
+        return (CONF_STATE_ADDRESS, CONF_PULSE_ADDRESS)
+    if control == CTRL_LATCHING:
+        return (CONF_STATE_ADDRESS, CONF_WRITE_ADDRESS)
+    return (CONF_WRITE_ADDRESS,)  # CTRL_SIMPLE
+
+
+def clean_entity(item: dict[str, Any]) -> dict[str, Any]:
+    """Build the stored dict, coercing numbers and dropping empty extras."""
+    item = _normalize(item)
+    domain = item[CONF_DOMAIN]
+    control = item.get(CONF_CONTROL) if domain in CONTROLLABLE_DOMAINS else None
+    out: dict[str, Any] = {CONF_DOMAIN: domain, CONF_NAME: item[CONF_NAME]}
+    if control:
+        out[CONF_CONTROL] = control
+    for key in (CONF_STATE_ADDRESS, CONF_PULSE_ADDRESS, CONF_WRITE_ADDRESS):
+        if item.get(key) is not None:
+            out[key] = int(item[key])
+    if item.get(CONF_PULSE_DURATION) is not None:
+        out[CONF_PULSE_DURATION] = float(item[CONF_PULSE_DURATION])
+    if item.get(CONF_ICON):
+        out[CONF_ICON] = item[CONF_ICON]
+    if item.get(CONF_DEVICE_CLASS) and domain in _DEVICE_CLASS_DOMAINS:
+        out[CONF_DEVICE_CLASS] = item[CONF_DEVICE_CLASS]
+    return out
 
 
 def validate_entity(item: Any) -> dict[str, Any]:
     """Validate one entity (from YAML or the YAML editor)."""
     if not isinstance(item, dict):
         raise vol.Invalid("each entity must be a mapping")
-    data = dict(item)
-    entity_type = data.pop(CONF_TYPE, TYPE_IMPULSE_SWITCH)
-    if entity_type not in ENTITY_TYPES:
-        raise vol.Invalid(f"unknown entity type: {entity_type}")
-    validated = schema_for_type(entity_type)(data)
-    return clean_entity(entity_type, validated)
+    item = _normalize(item)
+    domain = item.get(CONF_DOMAIN)
+    if domain not in ALL_DOMAINS:
+        raise vol.Invalid(f"unknown domain: {domain}")
+    control = item.get(CONF_CONTROL) if domain in CONTROLLABLE_DOMAINS else None
+    if domain in CONTROLLABLE_DOMAINS and control not in ALL_CONTROLS:
+        raise vol.Invalid(f"{domain} needs a valid control mode")
+    if not str(item.get(CONF_NAME, "")).strip():
+        raise vol.Invalid("name is required")
+    for key in required_addresses(domain, control):
+        if item.get(key) is None:
+            raise vol.Invalid(f"{key} is required for {domain}/{control}")
+        try:
+            int(item[key])
+        except (TypeError, ValueError) as err:
+            raise vol.Invalid(f"{key} must be a number") from err
+    return clean_entity(item)
 
 
 def entities_of(options: dict[str, Any]) -> list[dict[str, Any]]:
-    """Return the configured entities, each guaranteed to carry a type.
-
-    Legacy entries without a type default to an impulse switch, which is
-    what they were before types existed.
-    """
-    result: list[dict[str, Any]] = []
-    for item in options.get(CONF_OUTPUTS, []):
-        result.append({**item, CONF_TYPE: item.get(CONF_TYPE, TYPE_IMPULSE_SWITCH)})
-    return result
+    """Configured entities, each migrated to the domain/control model."""
+    return [_normalize(item) for item in options.get(CONF_OUTPUTS, [])]
 
 
 def read_address(item: dict[str, Any]) -> int | None:
     """Coil this entity needs the coordinator to poll, if any."""
-    if item[CONF_TYPE] in _READ_TYPES:
+    domain = item[CONF_DOMAIN]
+    control = item.get(CONF_CONTROL)
+    if domain == DOM_BINARY_SENSOR:
+        return item.get(CONF_STATE_ADDRESS)
+    if domain in CONTROLLABLE_DOMAINS and control in (CTRL_IMPULSE, CTRL_LATCHING):
         return item.get(CONF_STATE_ADDRESS)
     return None

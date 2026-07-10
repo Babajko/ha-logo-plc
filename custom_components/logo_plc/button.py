@@ -11,13 +11,14 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    CONF_DOMAIN,
     CONF_ICON,
     CONF_NAME,
     CONF_PULSE_ADDRESS,
     CONF_PULSE_DURATION,
-    CONF_TYPE,
+    DEFAULT_ICONS,
     DEFAULT_PULSE_DURATION,
-    TYPE_BUTTON,
+    DOM_BUTTON,
 )
 from .entity import logo_device_info
 from .hub import LogoError, LogoHub
@@ -29,12 +30,11 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Create a button for each configured impulse button."""
     hub = entry.runtime_data.hub
     async_add_entities(
         LogoButton(hub, entry, item)
         for item in entities_of(entry.options)
-        if item[CONF_TYPE] == TYPE_BUTTON
+        if item[CONF_DOMAIN] == DOM_BUTTON
     )
 
 
@@ -51,8 +51,7 @@ class LogoButton(ButtonEntity):
         self._duration = item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION)
         self._attr_name = item[CONF_NAME]
         self._attr_unique_id = f"{entry.entry_id}_button_{self._address}"
-        if item.get(CONF_ICON):
-            self._attr_icon = item[CONF_ICON]
+        self._attr_icon = item.get(CONF_ICON) or DEFAULT_ICONS[DOM_BUTTON]
         self._attr_device_info = logo_device_info(entry)
 
     async def async_press(self) -> None:

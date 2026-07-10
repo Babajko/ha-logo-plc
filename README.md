@@ -34,23 +34,31 @@ configured per output.
 
 ## Entity types
 
-Each configured entity has a type, so one output can be exactly what it
-needs to be:
+Each output is described by two choices, so it becomes exactly the right
+kind of entity.
 
-- `sensor` — read-only indicator. Reads a Q coil and shows on/off. For
-  outputs you only monitor (a lamp with no control coil).
-- `button` — momentary impulse button. Pressing it pulses a
-  network-input coil. Restores the old push-button behaviour.
-- `impulse_switch` — reads Q for state and toggles an impulse relay with
-  a pulse (only pulses when the state needs to change).
-- `latching_switch` — reads Q for state and holds a control coil at a
-  level (write 1 = on, 0 = off). For imitating a normal light switch.
-- `simple_switch` — writes a control coil and keeps its own state, with
-  no reading back from the PLC.
+What it is (domain):
+
+- `light` — a lamp, LED strip or sconce. Shows as a proper light.
+- `fan` — an exhaust or ventilation fan. Shows as a fan.
+- `switch` — a generic on/off load.
+- `binary_sensor` — a read-only indicator (an output you only monitor,
+  like a lamp with no control coil).
+- `button` — a momentary button that fires a pulse.
+
+How it is controlled (for light / fan / switch):
+
+- `impulse` — reads the Q coil for state and toggles an impulse relay
+  with a pulse (only pulses when the state needs to change).
+- `latching` — reads the Q coil for state and holds a control coil at a
+  level (write 1 = on, 0 = off).
+- `simple` — writes a control coil and keeps its own state, with no
+  reading back from the PLC.
 
 Everything is configurable from the UI (Settings -> Devices & Services
--> the PLC -> Configure), including an "Edit all as YAML" code editor,
-or from YAML.
+-> the PLC -> Configure): pick the type, then the control mode, then the
+addresses — with an icon picker, a Q-output selector and an advanced
+section. There's also an "Edit all as YAML" code editor, and plain YAML.
 
 ## Requirements
 

@@ -1,11 +1,30 @@
-"""Shared entity helpers."""
+"""Shared entity helpers and the controllable-entity base."""
 
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.device_registry import DeviceInfo
+from typing import Any
 
-from .const import DOMAIN
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from .const import (
+    CONF_CONTROL,
+    CONF_DOMAIN,
+    CONF_ICON,
+    CONF_NAME,
+    CONF_PULSE_ADDRESS,
+    CONF_STATE_ADDRESS,
+    CONF_WRITE_ADDRESS,
+    CTRL_IMPULSE,
+    DEFAULT_ICONS,
+    DOM_SWITCH,
+    DOMAIN,
+)
+from .control import LogoControl
+from .coordinator import LogoCoordinator
+from .hub import LogoError, LogoHub
 
 
 def logo_device_info(entry: ConfigEntry) -> DeviceInfo:
@@ -16,3 +35,56 @@ def logo_device_info(entry: ConfigEntry) -> DeviceInfo:
         manufacturer="Siemens",
         model="LOGO!",
     )
+
+
+def entity_unique_id(entry: ConfigEntry, item: dict[str, Any]) -> str:
+    """Stable unique id; keeps the legacy id for switch+impulse entities."""
+    domain = item[CONF_DOMAIN]
+    control = item.get(CONF_CONTROL)
+    if domain == DOM_SWITCH and control == CTRL_IMPULSE:
+        return f"{entry.entry_id}_{item[CONF_STATE_ADDRESS]}"
+    key = (
+        item.get(CONF_STATE_ADDRESS)
+        or item.get(CONF_WRITE_ADDRESS)
+        or item.get(CONF_PULSE_ADDRESS)
+    )
+    return f"{entry.entry_id}_{domain}_{control or 'x'}_{key}"
+
+
+class LogoControllableEntity(CoordinatorEntity[LogoCoordinator]):
+    """Base for light/fan/switch — delegates on/off to LogoControl."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: LogoCoordinator,
+        hub: LogoHub,
+        entry: ConfigEntry,
+        item: dict[str, Any],
+    ) -> None:
+        super().__init__(coordinator)
+        self._control = LogoControl(hub, item)
+        self._attr_name = item[CONF_NAME]
+        self._attr_unique_id = entity_unique_id(entry, item)
+        self._attr_assumed_state = self._control.assumed_state
+        icon = item.get(CONF_ICON) or DEFAULT_ICONS.get(item[CONF_DOMAIN])
+        if icon:
+            self._attr_icon = icon
+        self._attr_device_info = logo_device_info(entry)
+
+    @property
+    def is_on(self) -> bool | None:
+        return self._control.is_on(self.coordinator)
+
+    @property
+    def available(self) -> bool:
+        return self._control.available(super().available, self.coordinator)
+
+    async def _async_set(self, target: bool) -> None:
+        try:
+            await self._control.async_set(target, self.coordinator)
+        except LogoError as err:
+            raise HomeAssistantError(
+                f"Failed to set {self._attr_name}: {err}"
+            ) from err

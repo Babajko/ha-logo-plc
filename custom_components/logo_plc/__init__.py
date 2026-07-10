@@ -32,7 +32,13 @@ from .models import entities_of, read_address, validate_entity
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SWITCH]
+PLATFORMS = [
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+    Platform.LIGHT,
+    Platform.FAN,
+    Platform.SWITCH,
+]
 
 PLC_SCHEMA = vol.Schema(
     {

@@ -25,12 +25,37 @@ CONF_PULSE_DURATION = "pulse_duration"
 CONF_ICON = "icon"
 CONF_DEVICE_CLASS = "device_class"
 
-# Entity types.
-TYPE_SENSOR = "sensor"  # read-only Q indicator (binary_sensor)
-TYPE_BUTTON = "button"  # impulse button (fires a pulse)
-TYPE_IMPULSE_SWITCH = "impulse_switch"  # reads Q, toggles via impulse
-TYPE_LATCHING_SWITCH = "latching_switch"  # reads Q, holds a control coil level
-TYPE_SIMPLE_SWITCH = "simple_switch"  # writes a control coil, assumed state
+# Legacy entity types (kept only for migrating old stored config).
+TYPE_SENSOR = "sensor"
+TYPE_BUTTON = "button"
+TYPE_IMPULSE_SWITCH = "impulse_switch"
+TYPE_LATCHING_SWITCH = "latching_switch"
+TYPE_SIMPLE_SWITCH = "simple_switch"
+
+# Two-axis model: domain (what it is) + control (how it is driven).
+CONF_DOMAIN = "domain"
+CONF_CONTROL = "control"
+
+DOM_LIGHT = "light"
+DOM_FAN = "fan"
+DOM_SWITCH = "switch"
+DOM_BINARY_SENSOR = "binary_sensor"
+DOM_BUTTON = "button"
+
+CTRL_IMPULSE = "impulse"
+CTRL_LATCHING = "latching"
+CTRL_SIMPLE = "simple"
+
+CONTROLLABLE_DOMAINS = (DOM_LIGHT, DOM_FAN, DOM_SWITCH)
+ALL_DOMAINS = (DOM_LIGHT, DOM_FAN, DOM_SWITCH, DOM_BINARY_SENSOR, DOM_BUTTON)
+ALL_CONTROLS = (CTRL_IMPULSE, CTRL_LATCHING, CTRL_SIMPLE)
+
+# Default MDI icon per domain (light/fan use HA's own defaults).
+DEFAULT_ICONS = {
+    DOM_SWITCH: "mdi:light-switch",
+    DOM_BUTTON: "mdi:gesture-tap-button",
+    DOM_BINARY_SENSOR: "mdi:electric-switch",
+}
 
 SWITCH_DEVICE_CLASSES = ["switch", "outlet"]
 BINARY_SENSOR_DEVICE_CLASSES = [

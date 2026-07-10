@@ -1,24 +1,16 @@
-# Example logo_plc configuration for both PLCs.
+# Example logo_plc configuration.
 #
-# Copy the `logo_plc:` block into your Home Assistant configuration.yaml
-# (or an included file) and restart HA. Each PLC becomes a device and
-# each output a switch. Editing this and restarting re-imports it, so
-# YAML stays the source of truth for these entries.
+# Copy the `logo_plc:` block into configuration.yaml (or !include it) and
+# restart HA. Each PLC becomes a device; each item becomes an entity.
 #
-# state_address = the Q coil to read (Q1 = 8192, Q2 = 8193, ...).
-# pulse_address = the network-input coil that toggles the relay
-#                 (taken from the original scripts; the mapping is
-#                 irregular by design).
-#
-# Each entity has a `type` (default `impulse_switch` if omitted):
-#   sensor          - read-only indicator (state_address)
-#   button          - impulse button (pulse_address)
-#   impulse_switch  - reads Q, toggles via impulse (state + pulse address)
-#   latching_switch - reads Q, holds a control coil (state + write address)
-#   simple_switch   - writes a control coil, no feedback (write address)
-#
-# LOGO1 Q6 and Q11 had no pulse coil in the original program, so they are
-# added here as read-only `sensor` entities.
+# Every item has:
+#   domain:  light | fan | switch | binary_sensor | button
+#   control: impulse | latching | simple   (light / fan / switch only)
+# and address fields:
+#   state_address  - the Q coil to read    (Q1 = 8192, Q2 = 8193, ...)
+#   pulse_address  - coil pulsed to toggle  (impulse control, and buttons)
+#   write_address  - coil held at a level   (latching / simple control)
+# Optional: pulse_duration, icon, device_class (switch / binary_sensor).
 
 logo_plc:
   - name: LOGO1
@@ -27,66 +19,34 @@ logo_plc:
     slave: 1
     scan_interval: 1
     outputs:
-      - name: Q1
+      # Room light on an impulse relay: reads Q1 (8192), pulses coil 21.
+      - name: Living room
+        domain: light
+        control: impulse
         state_address: 8192
         pulse_address: 21
-      - name: Q2
-        state_address: 8193
-        pulse_address: 23
-      - name: Q3
+      - name: Kitchen
+        domain: light
+        control: impulse
         state_address: 8194
         pulse_address: 7
-      - name: Q4
-        state_address: 8195
-        pulse_address: 22
-      - name: Q5
-        state_address: 8196
-        pulse_address: 15
-      - name: Q7
+      # Exhaust fan on an impulse relay.
+      - name: Bathroom fan
+        domain: fan
+        control: impulse
         state_address: 8198
         pulse_address: 11
-      - name: Q8
-        state_address: 8199
-        pulse_address: 9
-      - name: Q9
-        state_address: 8200
-        pulse_address: 16
-      - name: Q10
-        state_address: 8201
-        pulse_address: 17
-      - name: Q12
-        state_address: 8203
-        pulse_address: 14
-      - name: Q13
-        state_address: 8204
-        pulse_address: 12
-      - name: Q14
-        state_address: 8205
-        pulse_address: 8
-      - name: Q15
-        state_address: 8206
-        pulse_address: 6
-      - name: Q16
-        state_address: 8207
-        pulse_address: 13
-      - name: Q17
-        state_address: 8208
-        pulse_address: 18
-      - name: Q18
-        state_address: 8209
-        pulse_address: 19
-      - name: Q19
-        state_address: 8210
-        pulse_address: 20
-      - name: Q20
-        state_address: 8211
-        pulse_address: 10
+      # Read-only indicators (no pulse coil in the program).
       - name: Q6
-        type: sensor
+        domain: binary_sensor
         state_address: 8197
       - name: Q11
-        type: sensor
+        domain: binary_sensor
         state_address: 8202
+      # A plain impulse button.
+      - name: Q20 pulse
+        domain: button
+        pulse_address: 10
 
   - name: LOGO2
     host: 192.168.0.3
@@ -94,21 +54,8 @@ logo_plc:
     slave: 1
     scan_interval: 1
     outputs:
-      - name: Q1
+      - name: Hallway
+        domain: light
+        control: impulse
         state_address: 8192
         pulse_address: 19
-      - name: Q2
-        state_address: 8193
-        pulse_address: 22
-      - name: Q3
-        state_address: 8194
-        pulse_address: 16
-      - name: Q4
-        state_address: 8195
-        pulse_address: 17
-      - name: Q5
-        state_address: 8196
-        pulse_address: 20
-      - name: Q6
-        state_address: 8197
-        pulse_address: 21
