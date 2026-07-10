@@ -11,6 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
+    CONF_AREA,
     CONF_DEVICE_CLASS,
     CONF_DOMAIN,
     CONF_ICON,
@@ -20,7 +21,7 @@ from .const import (
     DOM_BINARY_SENSOR,
 )
 from .coordinator import LogoCoordinator
-from .entity import logo_device_info
+from .entity import LogoAreaEntity, logo_device_info
 from .models import entities_of
 
 
@@ -37,7 +38,9 @@ async def async_setup_entry(
     )
 
 
-class LogoBinarySensor(CoordinatorEntity[LogoCoordinator], BinarySensorEntity):
+class LogoBinarySensor(
+    LogoAreaEntity, CoordinatorEntity[LogoCoordinator], BinarySensorEntity
+):
     """Reads one Q coil and reports it as on/off."""
 
     _attr_has_entity_name = True
@@ -49,6 +52,7 @@ class LogoBinarySensor(CoordinatorEntity[LogoCoordinator], BinarySensorEntity):
         item: dict[str, Any],
     ) -> None:
         super().__init__(coordinator)
+        self._configured_area = item.get(CONF_AREA)
         self._address = item[CONF_STATE_ADDRESS]
         self._attr_name = item[CONF_NAME]
         self._attr_unique_id = f"{entry.entry_id}_sensor_{self._address}"

@@ -24,6 +24,7 @@ CONF_WRITE_ADDRESS = "write_address"
 CONF_PULSE_DURATION = "pulse_duration"
 CONF_ICON = "icon"
 CONF_DEVICE_CLASS = "device_class"
+CONF_AREA = "area"
 
 # Legacy entity types (kept only for migrating old stored config).
 TYPE_SENSOR = "sensor"

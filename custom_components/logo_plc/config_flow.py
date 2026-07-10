@@ -19,6 +19,7 @@ import homeassistant.helpers.config_validation as cv
 
 from .const import (
     BINARY_SENSOR_DEVICE_CLASSES,
+    CONF_AREA,
     CONF_CONTROL,
     CONF_DEVICE_CLASS,
     CONF_DOMAIN,
@@ -135,6 +136,7 @@ def _entity_schema(
     fields: dict[Any, Any] = {
         vol.Required(CONF_NAME, default=d.get(CONF_NAME, "")): selector.TextSelector()
     }
+    fields[_marker(vol.Optional, CONF_AREA, d)] = selector.AreaSelector()
     if CONF_STATE_ADDRESS in reqs:
         fields[_marker(vol.Required, CONF_STATE_ADDRESS, d, as_str=True)] = (
             _q_selector()

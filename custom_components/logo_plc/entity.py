@@ -1,4 +1,4 @@
-"""Shared entity helpers and the controllable-entity base."""
+"""Shared entity helpers and base classes."""
 
 from __future__ import annotations
 
@@ -6,10 +6,12 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import area_registry as ar, entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
+    CONF_AREA,
     CONF_CONTROL,
     CONF_DOMAIN,
     CONF_ICON,
@@ -51,7 +53,29 @@ def entity_unique_id(entry: ConfigEntry, item: dict[str, Any]) -> str:
     return f"{entry.entry_id}_{domain}_{control or 'x'}_{key}"
 
 
-class LogoControllableEntity(CoordinatorEntity[LogoCoordinator]):
+class LogoAreaEntity:
+    """Assigns the configured area once, on first registration.
+
+    Only applied when the entity has no area yet, so a later manual move
+    to another room is respected.
+    """
+
+    _configured_area: str | None = None
+    hass: Any
+    registry_entry: Any
+    entity_id: str
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()  # type: ignore[misc]
+        area_id = self._configured_area
+        if not area_id or self.registry_entry is None or self.registry_entry.area_id:
+            return
+        if ar.async_get(self.hass).async_get_area(area_id) is None:
+            return
+        er.async_get(self.hass).async_update_entity(self.entity_id, area_id=area_id)
+
+
+class LogoControllableEntity(LogoAreaEntity, CoordinatorEntity[LogoCoordinator]):
     """Base for light/fan/switch — delegates on/off to LogoControl."""
 
     _attr_has_entity_name = True
@@ -65,6 +89,7 @@ class LogoControllableEntity(CoordinatorEntity[LogoCoordinator]):
     ) -> None:
         super().__init__(coordinator)
         self._control = LogoControl(hub, item)
+        self._configured_area = item.get(CONF_AREA)
         self._attr_name = item[CONF_NAME]
         self._attr_unique_id = entity_unique_id(entry, item)
         self._attr_assumed_state = self._control.assumed_state

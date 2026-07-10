@@ -52,6 +52,7 @@
         "description": "State is the output coil to read (pick the Q). Pulse/Write is the network-input coil that drives it.",
         "data": {
           "name": "Name",
+          "area": "Room",
           "state_address": "Output (Q)",
           "pulse_address": "Pulse coil",
           "write_address": "Control coil"

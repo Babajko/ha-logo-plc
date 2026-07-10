@@ -13,6 +13,7 @@ import voluptuous as vol
 from .const import (
     ALL_CONTROLS,
     ALL_DOMAINS,
+    CONF_AREA,
     CONF_CONTROL,
     CONF_DEVICE_CLASS,
     CONF_DOMAIN,
@@ -92,6 +93,8 @@ def clean_entity(item: dict[str, Any]) -> dict[str, Any]:
         out[CONF_ICON] = item[CONF_ICON]
     if item.get(CONF_DEVICE_CLASS) and domain in _DEVICE_CLASS_DOMAINS:
         out[CONF_DEVICE_CLASS] = item[CONF_DEVICE_CLASS]
+    if item.get(CONF_AREA):
+        out[CONF_AREA] = item[CONF_AREA]
     return out
 
 

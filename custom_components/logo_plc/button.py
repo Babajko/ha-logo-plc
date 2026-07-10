@@ -11,6 +11,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    CONF_AREA,
     CONF_DOMAIN,
     CONF_ICON,
     CONF_NAME,
@@ -20,7 +21,7 @@ from .const import (
     DEFAULT_PULSE_DURATION,
     DOM_BUTTON,
 )
-from .entity import logo_device_info
+from .entity import LogoAreaEntity, logo_device_info
 from .hub import LogoError, LogoHub
 from .models import entities_of
 
@@ -38,7 +39,7 @@ async def async_setup_entry(
     )
 
 
-class LogoButton(ButtonEntity):
+class LogoButton(LogoAreaEntity, ButtonEntity):
     """Fires a pulse on a network-input coil when pressed."""
 
     _attr_has_entity_name = True
@@ -47,6 +48,7 @@ class LogoButton(ButtonEntity):
         self, hub: LogoHub, entry: ConfigEntry, item: dict[str, Any]
     ) -> None:
         self._hub = hub
+        self._configured_area = item.get(CONF_AREA)
         self._address = item[CONF_PULSE_ADDRESS]
         self._duration = item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION)
         self._attr_name = item[CONF_NAME]
