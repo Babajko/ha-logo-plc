@@ -68,6 +68,10 @@ class LogoHub:
     def port(self) -> int:
         return self._port
 
+    @property
+    def reconnect_delay(self) -> float:
+        return self._reconnect_delay
+
     async def connect(self) -> None:
         """Open the connection, raising LogoConnectionError on failure."""
         async with self._lock:

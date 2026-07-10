@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 import logging
 
@@ -109,6 +110,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             await runtime.hub.close()
         except LogoError as err:  # pragma: no cover - close is best effort
             _LOGGER.debug("Error closing LOGO! hub: %s", err)
+        # On reload HA calls setup right after unload. This LOGO holds a
+        # single connection, so pause to let it release the slot before
+        # the new hub connects — otherwise the reconnect races the just
+        # closed socket and the LOGO drops it.
+        await asyncio.sleep(runtime.hub.reconnect_delay)
     return unloaded
 
 
