@@ -140,6 +140,21 @@ Services -> the PLC -> Configure lets you add, edit and remove outputs
 and change the connection, with no file editing. UI edits are stored in
 Home Assistant, not in `configuration.yaml`.
 
+## Development
+
+Run the checks in a virtualenv:
+
+```bash
+pip install -r requirements_test.txt
+ruff check custom_components/logo_plc
+pytest
+```
+
+Tests use `pytest-homeassistant-custom-component` and cover the config
+migration/validation, the three control modes, the Modbus hub (with a
+fake client) and the config flow. CI runs ruff, pytest, hassfest and
+HACS validation on every push.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
