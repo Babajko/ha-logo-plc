@@ -30,3 +30,8 @@ config/
 DECISIONS.md
 LEARNING_LOG.md
 SESSION_HANDOFF.md
+
+# Personal setup (real room/entity/camera names) — kept local
+docs/rooms-config.yaml
+docs/kiosk-lights-view.yaml
+docs/kiosk-panel.yaml
