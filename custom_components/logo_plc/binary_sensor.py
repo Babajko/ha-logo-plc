@@ -21,7 +21,7 @@ from .const import (
     DOM_BINARY_SENSOR,
 )
 from .coordinator import LogoCoordinator
-from .entity import LogoAreaEntity, logo_device_info
+from .entity import LogoAreaEntity, entity_unique_id, logo_device_info
 from .models import entities_of
 
 
@@ -55,7 +55,7 @@ class LogoBinarySensor(
         self._configured_area = item.get(CONF_AREA)
         self._address = item[CONF_STATE_ADDRESS]
         self._attr_name = item[CONF_NAME]
-        self._attr_unique_id = f"{entry.entry_id}_sensor_{self._address}"
+        self._attr_unique_id = entity_unique_id(entry, item)
         if item.get(CONF_DEVICE_CLASS):
             self._attr_device_class = item[CONF_DEVICE_CLASS]
         if item.get(CONF_ICON):

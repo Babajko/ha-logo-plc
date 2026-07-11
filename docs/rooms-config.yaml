@@ -1,0 +1,182 @@
+# Generated entity config, mapped from the old dashboard (names + rooms)
+# and the original script (pulse coils). Delivery: paste each list into
+# the matching PLC's "Edit all as YAML" (Configure -> Edit all as YAML).
+#
+# `area` is a best-guess area_id (transliterated). Unknown areas are
+# ignored safely — fix any that don't stick in the UI, or send the real
+# area_ids. area_ids: Кухня=kukhnia Кабінет=kabinet Коридор=korydor
+# Спальня=spalnia Дитяча=dytiacha WC=wc Ванна=vanna Балкони=balkony
+#
+# Flagged guesses (names truncated on the screenshot — please confirm):
+#   LOGO1 Q8/Q7 "Спальня ліжко 1 / 2" (which is left/right?)
+#   LOGO1 Q17 "Ванна основне"
+
+
+# ============================================================
+# LOGO1  (192.168.0.2)  — paste into LOGO1's editor
+# ============================================================
+- domain: light
+  control: impulse
+  name: Кухня ліво
+  state_address: 8192
+  pulse_address: 21
+  area: kukhnia
+- domain: light
+  control: impulse
+  name: Кухня над столом
+  state_address: 8193
+  pulse_address: 23
+  area: kukhnia
+- domain: light
+  control: impulse
+  name: Кухня LED
+  state_address: 8194
+  pulse_address: 7
+  area: kukhnia
+- domain: light
+  control: impulse
+  name: Кухня право
+  state_address: 8195
+  pulse_address: 22
+  area: kukhnia
+- domain: light
+  control: impulse
+  name: Дитяча 1
+  state_address: 8196
+  pulse_address: 15
+  area: dytiacha
+- domain: binary_sensor
+  name: Балкон дитяча
+  state_address: 8197
+  area: balkony
+- domain: light
+  control: impulse
+  name: Спальня ліжко 2
+  state_address: 8198
+  pulse_address: 11
+  area: spalnia
+- domain: light
+  control: impulse
+  name: Спальня ліжко 1
+  state_address: 8199
+  pulse_address: 9
+  area: spalnia
+- domain: light
+  control: impulse
+  name: Кабінет 1
+  state_address: 8200
+  pulse_address: 16
+  area: kabinet
+- domain: light
+  control: impulse
+  name: Кабінет робоча зона
+  state_address: 8201
+  pulse_address: 17
+  area: kabinet
+- domain: binary_sensor
+  name: Кабінет 2
+  state_address: 8202
+  area: kabinet
+- domain: light
+  control: impulse
+  name: Дитяча 2
+  state_address: 8203
+  pulse_address: 14
+  area: dytiacha
+- domain: light
+  control: impulse
+  name: Спальня 1
+  state_address: 8204
+  pulse_address: 12
+  area: spalnia
+- domain: light
+  control: impulse
+  name: Спальня робоча зона
+  state_address: 8205
+  pulse_address: 8
+  area: spalnia
+- domain: light
+  control: impulse
+  name: Підсвітка кухня
+  state_address: 8206
+  pulse_address: 6
+  area: kukhnia
+- domain: light
+  control: impulse
+  name: Балкон спальня
+  state_address: 8207
+  pulse_address: 13
+  area: balkony
+- domain: light
+  control: impulse
+  name: Ванна основне
+  state_address: 8208
+  pulse_address: 18
+  area: vanna
+- domain: fan
+  control: impulse
+  name: Ванна вентилятор
+  state_address: 8209
+  pulse_address: 19
+  area: vanna
+- domain: light
+  control: impulse
+  name: Ванна LED
+  state_address: 8210
+  pulse_address: 20
+  area: vanna
+- domain: light
+  control: impulse
+  name: Спальня 2
+  state_address: 8211
+  pulse_address: 10
+  area: spalnia
+
+
+# ============================================================
+# LOGO2  (192.168.0.3)  — paste into LOGO2's editor
+# ============================================================
+- domain: light
+  control: impulse
+  name: Коридор центер
+  state_address: 8192
+  pulse_address: 19
+  area: korydor
+- domain: light
+  control: impulse
+  name: Коридор вхід
+  state_address: 8193
+  pulse_address: 22
+  area: korydor
+- domain: fan
+  control: impulse
+  name: WC вентилятор
+  state_address: 8194
+  pulse_address: 16
+  area: wc
+- domain: light
+  control: impulse
+  name: WC світло
+  state_address: 8195
+  pulse_address: 17
+  area: wc
+- domain: light
+  control: impulse
+  name: Загальний коридор
+  state_address: 8196
+  pulse_address: 20
+  area: korydor
+- domain: light
+  control: impulse
+  name: LED коридор
+  state_address: 8197
+  pulse_address: 21
+  area: korydor
+- domain: binary_sensor
+  name: WC LED
+  state_address: 8198
+  area: wc
+- domain: binary_sensor
+  name: Кабінет трек
+  state_address: 8203
+  area: kabinet

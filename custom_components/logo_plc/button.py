@@ -21,7 +21,7 @@ from .const import (
     DEFAULT_PULSE_DURATION,
     DOM_BUTTON,
 )
-from .entity import LogoAreaEntity, logo_device_info
+from .entity import LogoAreaEntity, entity_unique_id, logo_device_info
 from .hub import LogoError, LogoHub
 from .models import entities_of
 
@@ -52,7 +52,7 @@ class LogoButton(LogoAreaEntity, ButtonEntity):
         self._address = item[CONF_PULSE_ADDRESS]
         self._duration = item.get(CONF_PULSE_DURATION, DEFAULT_PULSE_DURATION)
         self._attr_name = item[CONF_NAME]
-        self._attr_unique_id = f"{entry.entry_id}_button_{self._address}"
+        self._attr_unique_id = entity_unique_id(entry, item)
         self._attr_icon = item.get(CONF_ICON) or DEFAULT_ICONS[DOM_BUTTON]
         self._attr_device_info = logo_device_info(entry)
 

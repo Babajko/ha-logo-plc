@@ -21,6 +21,8 @@ from .const import (
     CONF_WRITE_ADDRESS,
     CTRL_IMPULSE,
     DEFAULT_ICONS,
+    DOM_BINARY_SENSOR,
+    DOM_BUTTON,
     DOM_SWITCH,
     DOMAIN,
 )
@@ -40,10 +42,16 @@ def logo_device_info(entry: ConfigEntry) -> DeviceInfo:
 
 
 def entity_unique_id(entry: ConfigEntry, item: dict[str, Any]) -> str:
-    """Stable unique id; keeps the legacy id for switch+impulse entities."""
+    """Unique id for any entity type. Single source used by every platform
+    and by the stale-entity cleanup, so they always agree."""
     domain = item[CONF_DOMAIN]
+    if domain == DOM_BINARY_SENSOR:
+        return f"{entry.entry_id}_sensor_{item[CONF_STATE_ADDRESS]}"
+    if domain == DOM_BUTTON:
+        return f"{entry.entry_id}_button_{item[CONF_PULSE_ADDRESS]}"
     control = item.get(CONF_CONTROL)
     if domain == DOM_SWITCH and control == CTRL_IMPULSE:
+        # Legacy id, kept so pre-existing switch entities survive.
         return f"{entry.entry_id}_{item[CONF_STATE_ADDRESS]}"
     key = (
         item.get(CONF_STATE_ADDRESS)

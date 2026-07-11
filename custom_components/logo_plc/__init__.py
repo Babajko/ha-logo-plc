@@ -11,7 +11,7 @@ import voluptuous as vol
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
@@ -27,6 +27,7 @@ from .const import (
     DOMAIN,
 )
 from .coordinator import LogoCoordinator
+from .entity import entity_unique_id
 from .hub import LogoError, LogoHub
 from .models import entities_of, read_address, validate_entity
 
@@ -102,6 +103,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
 
     entry.runtime_data = LogoRuntimeData(hub=hub, coordinator=coordinator)
+    _async_remove_stale_entities(hass, entry, entities)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_reload_on_update))
     return True
@@ -127,3 +129,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def _async_reload_on_update(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload the entry when its options (entities) change."""
     await hass.config_entries.async_reload(entry.entry_id)
+
+
+def _async_remove_stale_entities(
+    hass: HomeAssistant, entry: ConfigEntry, entities: list[dict]
+) -> None:
+    """Drop registry entries no longer in the config (e.g. after a domain
+    change), so renamed/retyped outputs don't leave 'unavailable' ghosts."""
+    expected = {entity_unique_id(entry, item) for item in entities}
+    registry = er.async_get(hass)
+    for reg_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if reg_entry.unique_id not in expected:
+            registry.async_remove(reg_entry.entity_id)
